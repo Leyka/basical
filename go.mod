@@ -3,12 +3,12 @@ module github.com/leyka/basical
 go 1.24.2
 
 require (
-	github.com/PuerkitoBio/goquery v1.10.3 // indirect
+	github.com/PuerkitoBio/goquery v1.10.3
+	github.com/joho/godotenv v1.5.1
+	gopkg.in/yaml.v3 v3.0.1
+)
+
+require (
 	github.com/andybalholm/cascadia v1.3.3 // indirect
-	github.com/jmoiron/sqlx v1.4.0 // indirect
-	github.com/joho/godotenv v1.5.1 // indirect
-	github.com/lmittmann/tint v1.0.7 // indirect
-	github.com/mattn/go-sqlite3 v1.14.28 // indirect
 	golang.org/x/net v0.39.0 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
 )

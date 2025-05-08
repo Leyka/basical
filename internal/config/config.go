@@ -35,18 +35,10 @@ func LoadConfig(ymlPath string) (*Config, error) {
 		return nil, err
 	}
 
-	tryLoadDotEnv()
-
+	godotenv.Load()
 	config.Telegram.BotToken = getTelegramBotToken()
 
 	return &config, nil
-}
-
-func tryLoadDotEnv() {
-	err := godotenv.Load()
-	if err != nil {
-		log.Println("No .env file found, using environment variables directly")
-	}
 }
 
 func getTelegramBotToken() string {
