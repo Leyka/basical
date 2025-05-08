@@ -17,15 +17,6 @@ func NewEventService(config *config.Config) *EventService {
 	}
 }
 
-func (s *EventService) FetchEvents() ([]Event, error) {
-	events, err := fetchEvents(s.config)
-	if err != nil {
-		return nil, err
-	}
-
-	return events, nil
-}
-
 func FilterEvents(events []Event, keywords []string) []Event {
 	var filteredEvents []Event
 	for _, e := range events {
@@ -41,10 +32,14 @@ func FilterEvents(events []Event, keywords []string) []Event {
 }
 
 func (s *EventService) GetTomorrowEvents(keywords []string) ([]Event, error) {
-	events, err := s.FetchEvents()
+	events, err := fetchEvents(s.config)
 	if err != nil {
 		return nil, err
 	}
+	if len(events) == 0 {
+		return nil, nil
+	}
+
 	filteredEvents := FilterEvents(events, keywords)
 	if len(filteredEvents) == 0 {
 		return nil, nil
