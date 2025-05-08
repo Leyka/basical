@@ -1,118 +1,63 @@
 package main
 
 import (
-	"fmt"
-	"net/http"
-	"os"
-	"sort"
-	"time"
+	"strings"
 
-	"github.com/PuerkitoBio/goquery"
+	"github.com/leyka/basical/internal/config"
+	"github.com/leyka/basical/internal/event"
 	"github.com/leyka/basical/internal/log"
-	"gopkg.in/yaml.v3"
+	"github.com/leyka/basical/internal/notifier"
+	"github.com/leyka/basical/internal/utils"
 )
-
-const siteConfigPath = "config.yml"
 
 var logger = log.GetLogger()
 
-type SiteConfig struct {
-	Site struct {
-		Url        string `yaml:"url"`
-		DateFormat string `yaml:"date_format"`
-	} `yaml:"site"`
-	Selectors struct {
-		EventRoot string `yaml:"event_root"`
-		Title     string `yaml:"title"`
-		DateAttr  string `yaml:"date_attr"`
-	} `yaml:"selectors"`
-}
+func getTomorrowCollectsEvents(config *config.Config) ([]event.Event, error) {
+	eventService := event.NewEventService(config)
 
-type Event struct {
-	Date  time.Time
-	Title string
-}
-
-func loadSiteConfig(path string) (*SiteConfig, error) {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return nil, err
-	}
-	var config SiteConfig
-	if err := yaml.Unmarshal(data, &config); err != nil {
-		return nil, err
-	}
-	return &config, nil
-}
-
-func loadDocument(url string) (*goquery.Document, error) {
-	resp, err := http.Get(url)
-	if err != nil {
-		return nil, fmt.Errorf("failed to fetch page: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("non-200 response: %s", resp.Status)
-	}
-
-	doc, err := goquery.NewDocumentFromReader(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse HTML: %w", err)
-	}
-	return doc, nil
-}
-
-func fetchEvents(config *SiteConfig) ([]Event, error) {
-	doc, err := loadDocument(config.Site.Url)
+	keywords := []string{"collecte"}
+	events, err := eventService.GetTomorrowEvents(keywords)
 	if err != nil {
 		return nil, err
 	}
 
-	var events []Event
-
-	doc.Find(config.Selectors.EventRoot).Each(func(i int, s *goquery.Selection) {
-		title := s.Find(config.Selectors.Title).Text()
-		dateStr, exists := s.Attr(config.Selectors.DateAttr)
-		if !exists || title == "" {
-			return
-		}
-		date, err := time.Parse(config.Site.DateFormat, dateStr)
-		if err != nil {
-			logger.Error("Failed to parse date", "date", dateStr)
-			return
-		}
-		events = append(events, Event{
-			Title: title,
-			Date:  date,
-		})
-	})
-
-	// Sort events by date ascending
-	sort.Slice(events, func(i, j int) bool {
-		return events[i].Date.Before(events[j].Date)
-	})
+	if len(events) == 0 {
+		return nil, nil
+	}
 
 	return events, nil
 }
 
 func main() {
-	config, err := loadSiteConfig(siteConfigPath)
+	defer log.LogFile.Close()
+
+	config, err := config.LoadConfig("config.yml")
 	if err != nil {
 		logger.Fatal("Error loading site config", "error", err)
 	}
 
-	events, err := fetchEvents(config)
+	tomorrowEvents, err := getTomorrowCollectsEvents(config)
 	if err != nil {
-		logger.Fatal("Error fetching events", "error", err)
+		logger.Fatal("Error fetching tomorrow's events", "error", err)
 	}
 
-	// Print events to check if they were correctly fetched and parsed
-	if len(events) > 0 {
-		for _, e := range events {
-			logger.Info("Event found", "date", e.Date.Format("2006-01-02"), "title", e.Title)
+	if len(tomorrowEvents) == 0 {
+		logger.Info("No events found for tomorrow")
+		return
+	}
+
+	telegram := notifier.NewTelegram(config.Telegram.BotToken)
+	for _, e := range tomorrowEvents {
+		formattedDate := strings.ToLower(utils.GetFormattedDateInFrench(e.Date))
+		msg := "*" + e.Title + "*\n" + "Demain le " + formattedDate + "\n" + e.Link
+
+		for _, chatID := range config.Telegram.ChatIDs {
+			err := telegram.SendMessage(chatID, msg)
+			if err != nil {
+				logger.Error("Error sending message to Telegram", "error", err, "chat_id", chatID)
+			} else {
+				logger.Info("Message sent to Telegram", "chat_id", chatID)
+			}
 		}
-	} else {
-		logger.Info("No events found")
 	}
 }

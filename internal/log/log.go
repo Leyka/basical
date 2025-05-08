@@ -1,25 +1,36 @@
 package log
 
 import (
+	"io"
 	"log/slog"
 	"os"
-
-	"github.com/lmittmann/tint"
 )
 
 type Logger struct {
 	*slog.Logger
 }
 
+const logsFilePath = "logs.json"
+
 const (
 	ErrorLabel = "error"
 )
 
 var logger *Logger
+var (
+	LogFile *os.File
+	err     error
+)
 
 func init() {
-	w := os.Stderr
-	baseLogger := slog.New(tint.NewHandler(w, nil))
+	LogFile, err = os.OpenFile(logsFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+	if err != nil {
+		panic(err)
+	}
+
+	multi := io.MultiWriter(os.Stdout, LogFile)
+	handler := slog.NewJSONHandler(multi, nil)
+	baseLogger := slog.New(handler)
 
 	logger = &Logger{baseLogger}
 }
