@@ -1,0 +1,7 @@
+site:
+  url: "https://www.villesblg.ca/calendrier/"
+  date_format: "2006-01-02"
+selectors:
+  event_root: "article.type-evenements"
+  title: ".entry-title a"
+  date_attr: "data-date"
