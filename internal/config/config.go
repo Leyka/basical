@@ -17,6 +17,7 @@ type Config struct {
 			Title     string `yaml:"title"`
 			DateAttr  string `yaml:"date_attr"`
 		} `yaml:"selectors"`
+		NotificationKeywords []string `yaml:"notification_keywords"`
 	} `yaml:"site"`
 	Telegram struct {
 		BotToken string

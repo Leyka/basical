@@ -12,10 +12,10 @@ import (
 
 var logger = log.GetLogger()
 
-func getTomorrowCollectsEvents(config *config.Config) ([]event.Event, error) {
+func getTomorrowEvents(config *config.Config) ([]event.Event, error) {
 	eventService := event.NewEventService(config)
 
-	keywords := []string{"collecte"}
+	keywords := config.Site.NotificationKeywords
 	events, err := eventService.GetTomorrowEvents(keywords)
 	if err != nil {
 		return nil, err
@@ -36,7 +36,7 @@ func main() {
 		logger.Fatal("Error loading site config", "error", err)
 	}
 
-	tomorrowEvents, err := getTomorrowCollectsEvents(config)
+	tomorrowEvents, err := getTomorrowEvents(config)
 	if err != nil {
 		logger.Fatal("Error fetching tomorrow's events", "error", err)
 	}

@@ -5,6 +5,8 @@ site:
     event_root: "article.type-evenements"
     title: ".entry-title a"
     date_attr: "data-date"
+  notification_keywords:
+    - "collecte"
 telegram:
   chat_ids:
     - "2015311730"
