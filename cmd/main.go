@@ -2,17 +2,19 @@ package main
 
 import (
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"sort"
 	"time"
 
 	"github.com/PuerkitoBio/goquery"
+	"github.com/leyka/basical/internal/log"
 	"gopkg.in/yaml.v3"
 )
 
 const siteConfigPath = "config.yml"
+
+var logger = log.GetLogger()
 
 type SiteConfig struct {
 	Site struct {
@@ -77,7 +79,7 @@ func fetchEvents(config *SiteConfig) ([]Event, error) {
 		}
 		date, err := time.Parse(config.Site.DateFormat, dateStr)
 		if err != nil {
-			log.Printf("Failed to parse date: %v", dateStr)
+			logger.Error("Failed to parse date", "date", dateStr)
 			return
 		}
 		events = append(events, Event{
@@ -97,20 +99,20 @@ func fetchEvents(config *SiteConfig) ([]Event, error) {
 func main() {
 	config, err := loadSiteConfig(siteConfigPath)
 	if err != nil {
-		log.Fatalf("Error loading site config: %v", err)
+		logger.Fatal("Error loading site config", "error", err)
 	}
 
 	events, err := fetchEvents(config)
 	if err != nil {
-		log.Fatalf("Error fetching events: %v", err)
+		logger.Fatal("Error fetching events", "error", err)
 	}
 
 	// Print events to check if they were correctly fetched and parsed
 	if len(events) > 0 {
 		for _, e := range events {
-			fmt.Printf("%s | %s\n", e.Date.Format("2006-01-02"), e.Title)
+			logger.Info("Event found", "date", e.Date.Format("2006-01-02"), "title", e.Title)
 		}
 	} else {
-		fmt.Println("No events found.")
+		logger.Info("No events found")
 	}
 }
